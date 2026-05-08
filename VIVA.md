@@ -274,6 +274,58 @@ Both paths render `templates/error/403.html`.
 
 ---
 
+## Section 9b — Docker & deployment
+
+### Q9b.1 How is the project deployed?
+**Short:** Docker Compose. Two containers — MySQL 8.4 and the Spring Boot app — on a single Docker network. One command to start: `./deploy.sh`.
+
+### Q9b.2 Walk me through the Dockerfile.
+**Short:** Multi-stage build. Stage 1 uses `maven:3.9-eclipse-temurin-17` to compile and package the JAR. Stage 2 uses `eclipse-temurin:17-jre` (no Maven, no source) to run it.
+
+**Extended:** This keeps the final image small (~250 MB instead of ~700 MB if Maven were included). The `pom.xml` is copied first and `mvn dependency:go-offline` runs before the source — that layer caches dependencies, so source-only changes rebuild in seconds. Final image runs as a non-root `app` user.
+
+### Q9b.3 Why two containers? Why not one?
+**Short:** Separation of concerns + independent lifecycle. You can restart the app without touching the database, scale them differently in production, and swap MySQL for RDS/Aurora later without changing the app image.
+
+### Q9b.4 How does the data persist?
+**Short:** Named Docker volume `incidentiq-mysql-data` mounted at `/var/lib/mysql` inside the MySQL container. Survives `docker compose down`. Only `docker compose down -v` deletes it.
+
+**Extended (if pushed):** *"Why not a bind-mount to the host?"* — Named volumes are managed by Docker and portable across environments. Bind-mounts couple the data to a specific host path; harder to migrate to a different machine.
+
+### Q9b.5 How does the app know where MySQL is?
+**Short:** Environment variable. `docker-compose.yml` sets `SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/...` — Docker Compose's internal DNS resolves `mysql` to the MySQL container's IP automatically.
+
+### Q9b.6 What's `depends_on: condition: service_healthy`?
+**Short:** Tells Compose to start the app only after MySQL passes its healthcheck (`mysqladmin ping`). Without it, the app could start before MySQL is ready and crash with a connection refused error.
+
+### Q9b.7 Why port 3307 on the host for MySQL, not 3306?
+**Short:** Many developers already have MySQL running on the host's 3306 — using 3307 avoids the port collision. Inside the Docker network, the app still talks to MySQL on 3306.
+
+### Q9b.8 How are secrets handled?
+**Short:** A `.env` file at the project root (gitignored). It's read by Docker Compose, not committed. `.env.example` is the safe-to-commit template with placeholders.
+
+**Extended:** *"Why not Docker secrets / Kubernetes secrets?"* — Docker secrets require Swarm mode; overkill for a college project. K8s secrets would be the next step in production. For local dev, `.env` is the standard pattern.
+
+### Q9b.9 What happens if the Gemini key is wrong or missing?
+**Short:** App boots normally. `GeminiClient` logs a warning and every AI call returns `Optional.empty()`. The rest of the app — incident CRUD, dashboard, PDF — works unchanged.
+
+### Q9b.10 What does `deploy.sh` do that `docker compose up` doesn't?
+**Short:** Three things: (1) verifies Docker is running and prints a clear error if not, (2) auto-creates `.env` from `.env.example` and pauses for the user to add their Gemini key, (3) polls the app for HTTP readiness and prints credentials when ready. It's a friendly wrapper, not a replacement.
+
+### Q9b.11 How would you ship this for production?
+- **HTTPS in front**: Nginx or Caddy reverse-proxy with Let's Encrypt
+- **Externalize MySQL**: managed RDS / Cloud SQL — drop the local mysql container
+- **Image registry**: push the app image to GHCR or ECR, pin tags by git SHA
+- **Secret management**: rotate to AWS Secrets Manager / Vault — kill the `.env` file
+- **Health probes**: add Spring Boot Actuator's `/actuator/health` and wire it into Compose/K8s liveness/readiness probes
+- **Resource limits**: set CPU / memory limits on the containers so a runaway thread doesn't take down the host
+- **CI/CD**: GitHub Actions builds the image on push to main, runs tests, pushes to registry, redeploys
+
+### Q9b.12 What if I demote myself or delete demo data — can I get it back?
+**Short:** Yes. `docker compose down -v` wipes the volume, then `./deploy.sh` (or `docker compose up -d`) re-runs `AdminSeeder` and `DemoSeeder` on the fresh DB.
+
+---
+
 ## Section 10 — Common follow-up questions
 
 ### Q10.1 What would you improve next?
