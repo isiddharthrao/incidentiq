@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Users — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container">
+    <div class="page-header">
+        <h1>Users</h1>
+        <a th:href="@{/users/new}" class="btn btn-primary">New User</a>
+    </div>
+
+    <div th:if="${flash}" class="alert alert-success" th:text="${flash}"></div>
+    <div th:if="${flashError}" class="alert alert-error" th:text="${flashError}"></div>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Role</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="u : ${users}">
+            <td th:text="${u.username}">user</td>
+            <td th:text="${u.fullName}">name</td>
+            <td>
+                <span class="badge"
+                      th:classappend="|badge-${#strings.toLowerCase(u.role)}|"
+                      th:text="${u.role}">role</span>
+            </td>
+            <td th:text="${u.email}">email</td>
+            <td>
+                <span th:if="${u.enabled}" class="badge badge-ok">Enabled</span>
+                <span th:unless="${u.enabled}" class="badge badge-muted">Disabled</span>
+            </td>
+            <td class="actions">
+                <a th:href="@{|/users/${u.id}/edit|}" class="btn btn-link">Edit</a>
+                <form th:action="@{|/users/${u.id}/delete|}" method="post"
+                      class="inline-form"
+                      th:attr="data-username=${u.username}"
+                      onsubmit="return confirm('Delete user ' + this.dataset.username + '?');">
+                    <button type="submit" class="btn btn-link btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(users)}">
+            <td colspan="6" class="muted">No users.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

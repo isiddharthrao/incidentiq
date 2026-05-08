@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>AI service unavailable — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body class="auth-body">
+<main class="auth-card">
+    <div class="error-code">AI</div>
+    <h1 class="brand">AI service unavailable</h1>
+    <p class="muted">
+        The AI features (auto-categorize, resolution suggestions, thread summarization)
+        can't reach Gemini right now.
+    </p>
+    <p class="muted">
+        The rest of IncidentIQ still works — you can create, view, and resolve incidents
+        without AI. Once Gemini is reachable again, suggestions will resume automatically.
+    </p>
+    <p class="muted" style="font-size: 12px; margin-top: 12px;">
+        Common causes: invalid <code>app.gemini.api-key</code> in <code>application.properties</code>,
+        no internet connectivity, or quota exhausted on the free tier.
+    </p>
+    <div class="form-actions" style="margin-top: 16px;">
+        <a th:href="@{/dashboard}" class="btn btn-primary">Back to dashboard</a>
+        <a th:href="@{/admin/ai/ping}" class="btn btn-link"
+           sec:authorize="hasRole('ADMIN')"
+           xmlns:sec="http://www.thymeleaf.org/extras/spring-security">Diagnose</a>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Incidents — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container">
+    <div class="page-header">
+        <h1>Incidents</h1>
+        <a th:href="@{/incidents/new}" class="btn btn-primary">New Incident</a>
+    </div>
+
+    <div th:if="${flash}" class="alert alert-success" th:text="${flash}"></div>
+    <div th:if="${flashError}" class="alert alert-error" th:text="${flashError}"></div>
+
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Category</th>
+            <th>Reporter</th>
+            <th>Assignee</th>
+            <th>Created</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="i : ${incidents}">
+            <td>
+                <a th:href="@{|/incidents/${i.id}|}" th:text="|INC-${i.id}|" class="mono">INC-1</a>
+            </td>
+            <td>
+                <a th:href="@{|/incidents/${i.id}|}" th:text="${i.title}">title</a>
+            </td>
+            <td>
+                <span class="badge"
+                      th:classappend="|priority-${#strings.toLowerCase(i.priority)}|"
+                      th:text="${i.priority}">P3</span>
+            </td>
+            <td>
+                <span class="badge"
+                      th:classappend="|status-${#strings.toLowerCase(i.status)}|"
+                      th:text="${i.status}">OPEN</span>
+            </td>
+            <td th:text="${i.category}">CATEGORY</td>
+            <td th:text="${i.reporter.username}">reporter</td>
+            <td th:text="${i.assignee != null} ? ${i.assignee.username} : '—'">assignee</td>
+            <td th:text="${#temporals.format(i.createdAt, 'yyyy-MM-dd HH:mm')}">2026-01-01</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(incidents)}">
+            <td colspan="8" class="muted">No incidents.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

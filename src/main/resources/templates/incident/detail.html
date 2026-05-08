@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="|INC-${incident.id} — IncidentIQ|">Incident</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container">
+    <div th:if="${flash}" class="alert alert-success" th:text="${flash}"></div>
+    <div th:if="${flashError}" class="alert alert-error" th:text="${flashError}"></div>
+    <div th:if="${aiResolutionFailed}" class="alert alert-error">
+        AI resolution suggestion failed. The model may be temporarily unavailable.
+    </div>
+
+    <article class="incident-detail">
+        <header class="incident-header">
+            <div class="incident-id muted mono" th:text="|INC-${incident.id}|">INC-1</div>
+            <h1 th:text="${incident.title}">Title</h1>
+            <div class="incident-badges">
+                <span class="badge"
+                      th:classappend="|status-${#strings.toLowerCase(incident.status)}|"
+                      th:text="${incident.status}">OPEN</span>
+                <span class="badge"
+                      th:classappend="|priority-${#strings.toLowerCase(incident.priority)}|"
+                      th:text="${incident.priority}">P3</span>
+                <span class="badge" th:text="${incident.category}">CATEGORY</span>
+                <span th:if="${incident.categoryAiSuggestion != null and incident.categoryAiSuggestion != incident.category}"
+                      class="badge ai-override-badge"
+                      th:text="|AI suggested: ${incident.categoryAiSuggestion}|">AI suggested</span>
+                <span th:if="${incident.priorityAiSuggestion != null and incident.priorityAiSuggestion != incident.priority}"
+                      class="badge ai-override-badge"
+                      th:text="|AI suggested: ${incident.priorityAiSuggestion}|">AI suggested</span>
+            </div>
+        </header>
+
+        <div class="incident-grid">
+            <section class="incident-main">
+                <h2>Description</h2>
+                <p class="incident-description" th:text="${incident.description}">description</p>
+
+                <section th:if="${incident.resolutionNotes}" class="resolution-block">
+                    <h2>Resolution</h2>
+                    <p th:text="${incident.resolutionNotes}">resolution</p>
+                </section>
+
+                <section th:if="${incident.aiSummary}" class="ai-summary-block">
+                    <h2>AI summary</h2>
+                    <p th:text="${incident.aiSummary}">summary</p>
+                </section>
+
+                <section sec:authorize="hasAnyRole('ENGINEER','ADMIN')"
+                         th:if="${incident.status.name() != 'CLOSED'}" class="ai-action-section">
+                    <h2>AI resolution suggestion</h2>
+                    <div th:if="${aiResolutionSuggestion}" class="ai-summary-block">
+                        <p style="white-space: pre-wrap;" th:text="${aiResolutionSuggestion}">suggestion</p>
+                        <p class="muted" style="margin-top: 8px; font-size: 12px;"
+                           th:if="${aiResolutionRagCount}"
+                           th:text="|Based on ${aiResolutionRagCount} similar past incident(s).|">RAG context</p>
+                    </div>
+                    <form th:action="@{|/incidents/${incident.id}/suggest-resolution|}" method="post" class="inline-form">
+                        <button type="submit" class="btn btn-link">
+                            <span th:if="${aiResolutionSuggestion}">Re-generate suggestion</span>
+                            <span th:unless="${aiResolutionSuggestion}">Suggest resolution steps</span>
+                        </button>
+                    </form>
+                </section>
+
+                <section class="thread-block">
+                    <h2>Thread</h2>
+                    <ol class="thread">
+                        <li th:each="u : ${incident.updates}" class="thread-item">
+                            <div class="thread-meta">
+                                <strong th:text="${u.author.username}">author</strong>
+                                <span class="muted" th:text="${#temporals.format(u.createdAt, 'yyyy-MM-dd HH:mm')}">date</span>
+                            </div>
+                            <p class="thread-text" th:text="${u.text}">comment</p>
+                        </li>
+                        <li th:if="${#lists.isEmpty(incident.updates)}" class="muted thread-empty">No comments yet.</li>
+                    </ol>
+
+                    <form th:if="${incident.status.name() != 'CLOSED'}"
+                          th:action="@{|/incidents/${incident.id}/comment|}"
+                          th:object="${commentForm}" method="post" class="form comment-form">
+                        <label>
+                            Add a comment
+                            <textarea th:field="*{text}" rows="3" maxlength="5000" required></textarea>
+                        </label>
+                        <button type="submit" class="btn btn-primary">Post</button>
+                    </form>
+                    <p th:if="${incident.status.name() == 'CLOSED'}" class="muted closed-banner">
+                        This incident is closed. Comments are read-only.
+                    </p>
+                </section>
+            </section>
+
+            <aside class="incident-side">
+                <dl class="meta-list">
+                    <dt>Reporter</dt>
+                    <dd th:text="${incident.reporter.username}">reporter</dd>
+                    <dt>Assignee</dt>
+                    <dd th:text="${incident.assignee != null} ? ${incident.assignee.username} : '—'">assignee</dd>
+                    <dt>Created</dt>
+                    <dd th:text="${#temporals.format(incident.createdAt, 'yyyy-MM-dd HH:mm')}">date</dd>
+                    <dt>Updated</dt>
+                    <dd th:text="${#temporals.format(incident.updatedAt, 'yyyy-MM-dd HH:mm')}">date</dd>
+                    <dt th:if="${incident.resolvedAt}">Resolved</dt>
+                    <dd th:if="${incident.resolvedAt}"
+                        th:text="${#temporals.format(incident.resolvedAt, 'yyyy-MM-dd HH:mm')}">date</dd>
+                </dl>
+
+                <div sec:authorize="hasAnyRole('ENGINEER','ADMIN')"
+                     th:if="${incident.status.name() != 'CLOSED'}" class="action-block">
+                    <h3>Assignee</h3>
+                    <form th:action="@{|/incidents/${incident.id}/assign|}" method="post" class="action-form">
+                        <select name="assigneeId" class="form-select">
+                            <option value="">— Unassigned —</option>
+                            <option th:each="u : ${assignableUsers}"
+                                    th:value="${u.id}"
+                                    th:text="${u.username}"
+                                    th:selected="${incident.assignee != null and incident.assignee.id == u.id}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-block">Update</button>
+                    </form>
+                </div>
+
+                <div sec:authorize="hasAnyRole('ENGINEER','ADMIN')"
+                     th:if="${incident.status.name() != 'CLOSED'}" class="action-block">
+                    <h3>Status</h3>
+                    <form th:action="@{|/incidents/${incident.id}/status|}" method="post" class="action-form">
+                        <select name="status" class="form-select">
+                            <option th:each="s : ${statuses}"
+                                    th:if="${s.name() != 'CLOSED'}"
+                                    th:value="${s}"
+                                    th:text="${s}"
+                                    th:selected="${incident.status == s}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-block">Update</button>
+                    </form>
+                </div>
+
+                <div sec:authorize="hasAnyRole('ENGINEER','ADMIN')"
+                     th:if="${incident.status.name() != 'CLOSED'}" class="action-block">
+                    <a th:href="@{|/incidents/${incident.id}/close|}" class="btn btn-primary btn-block">Close incident…</a>
+                </div>
+
+                <div sec:authorize="hasAnyRole('ENGINEER','ADMIN')"
+                     th:if="${similarIncidents != null and !#lists.isEmpty(similarIncidents)}"
+                     class="action-block">
+                    <h3>Similar past incidents</h3>
+                    <ul class="similar-list">
+                        <li th:each="s : ${similarIncidents}" class="similar-item">
+                            <a th:href="@{|/incidents/${s.id}|}" th:text="|INC-${s.id}|" class="mono">INC-1</a>
+                            <span class="badge"
+                                  th:classappend="|status-${#strings.toLowerCase(s.status)}|"
+                                  th:text="${s.status}">status</span>
+                            <div class="similar-title" th:text="${s.title}">title</div>
+                            <div th:if="${s.resolutionNotes}" class="similar-resolution muted"
+                                 th:text="${#strings.abbreviate(s.resolutionNotes, 120)}">resolution</div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="action-block">
+                    <a th:href="@{|/incidents/${incident.id}/pdf|}"
+                       class="btn btn-link btn-block">Download PDF report</a>
+                </div>
+
+                <div sec:authorize="hasRole('ADMIN')" class="action-block">
+                    <form th:action="@{|/incidents/${incident.id}/delete|}" method="post"
+                          th:attr="data-id=|INC-${incident.id}|"
+                          onsubmit="return confirm('Permanently delete ' + this.dataset.id + '?');">
+                        <button type="submit" class="btn btn-link btn-danger btn-block">Delete incident</button>
+                    </form>
+                </div>
+            </aside>
+        </div>
+    </article>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

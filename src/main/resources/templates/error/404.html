@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Not found — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body class="auth-body">
+<main class="auth-card">
+    <div class="error-code">404</div>
+    <h1 class="brand">Page not found</h1>
+    <p class="muted">
+        The page or incident you're looking for doesn't exist or may have been deleted.
+    </p>
+    <div class="form-actions" style="margin-top: 16px;">
+        <a th:href="@{/dashboard}" class="btn btn-primary">Back to dashboard</a>
+        <a th:href="@{/incidents}" class="btn btn-link">Browse incidents</a>
+    </div>
+</main>
+</body>
+</html>

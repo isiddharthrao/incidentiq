@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<header th:fragment="header" class="app-header">
+    <div class="header-inner">
+        <a th:href="@{/dashboard}" class="header-brand">IncidentIQ</a>
+        <nav class="header-nav">
+            <a th:href="@{/dashboard}" class="nav-link">Dashboard</a>
+            <a th:href="@{/incidents}" class="nav-link">Incidents</a>
+            <a th:href="@{/users}" class="nav-link" sec:authorize="hasRole('ADMIN')">Users</a>
+            <a th:href="@{/admin/ai/ping}" class="nav-link" sec:authorize="hasRole('ADMIN')">AI test</a>
+            <span class="nav-user" sec:authentication="name">user</span>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <button type="submit" class="btn btn-link">Sign out</button>
+            </form>
+        </nav>
+    </div>
+</header>
+</body>
+</html>

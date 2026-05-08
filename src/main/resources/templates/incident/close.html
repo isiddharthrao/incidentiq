@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="|Close INC-${incident.id} — IncidentIQ|">Close incident</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container container-narrow">
+    <h1 th:text="|Close INC-${incident.id}|">Close incident</h1>
+    <p class="muted" th:text="${incident.title}">title</p>
+    <p class="muted">Phase 7: closing will also generate an AI thread summary.</p>
+
+    <form th:action="@{|/incidents/${incident.id}/close|}"
+          th:object="${closeForm}" method="post" class="form">
+        <label>
+            Resolution notes
+            <textarea th:field="*{resolutionNotes}" rows="6" maxlength="5000" required></textarea>
+            <span class="field-error" th:if="${#fields.hasErrors('resolutionNotes')}"
+                  th:errors="*{resolutionNotes}"></span>
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Close incident</button>
+            <a th:href="@{|/incidents/${incident.id}|}" class="btn btn-link">Cancel</a>
+        </div>
+    </form>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

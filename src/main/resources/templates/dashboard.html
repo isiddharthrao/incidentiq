@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container">
+    <div class="dashboard-header">
+        <div>
+            <h1>Dashboard</h1>
+            <p class="muted">
+                <span th:text="${dashboard.scopeLabel}">scope</span> &middot;
+                Signed in as <strong sec:authentication="name">user</strong>
+                (<span sec:authentication="principal.role">role</span>)
+            </p>
+        </div>
+        <a th:href="@{/incidents/new}" class="btn btn-primary">New Incident</a>
+    </div>
+
+    <!-- KPI cards -->
+    <section class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Open</div>
+            <div class="kpi-value" th:text="${dashboard.openCount}">0</div>
+            <div class="kpi-sub muted">OPEN + IN_PROGRESS</div>
+        </div>
+        <div class="kpi-card" th:if="${dashboard.hasMyAssigned()}">
+            <div class="kpi-label">My assigned (open)</div>
+            <div class="kpi-value" th:text="${dashboard.myAssignedOpenCount}">0</div>
+            <div class="kpi-sub muted">Engineer view</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total incidents</div>
+            <div class="kpi-value" th:text="${dashboard.totalIncidents}">0</div>
+            <div class="kpi-sub muted">In scope</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Resolved / closed</div>
+            <div class="kpi-value" th:text="${dashboard.resolvedIncidents}">0</div>
+            <div class="kpi-sub muted">Lifetime</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Avg resolution (this week)</div>
+            <div class="kpi-value">
+                <span th:if="${dashboard.avgResolutionHoursThisWeek != null}"
+                      th:text="${dashboard.avgResolutionHoursThisWeek} + ' h'">0 h</span>
+                <span th:unless="${dashboard.avgResolutionHoursThisWeek != null}" class="muted">—</span>
+            </div>
+            <div class="kpi-sub muted">From created → resolved</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Avg resolution (last week)</div>
+            <div class="kpi-value">
+                <span th:if="${dashboard.avgResolutionHoursLastWeek != null}"
+                      th:text="${dashboard.avgResolutionHoursLastWeek} + ' h'">0 h</span>
+                <span th:unless="${dashboard.avgResolutionHoursLastWeek != null}" class="muted">—</span>
+            </div>
+            <div class="kpi-sub muted">7–14 days ago</div>
+        </div>
+    </section>
+
+    <!-- Admin metrics -->
+    <section th:if="${dashboard.hasAdminMetrics()}" class="kpi-grid kpi-admin">
+        <div class="kpi-card">
+            <div class="kpi-label">Total users</div>
+            <div class="kpi-value" th:text="${dashboard.totalUsers}">0</div>
+            <div class="kpi-sub muted">All roles</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">AI calls (total)</div>
+            <div class="kpi-value" th:text="${dashboard.aiCallsTotal}">0</div>
+            <div class="kpi-sub muted">All call types</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">AI success rate</div>
+            <div class="kpi-value">
+                <span th:if="${dashboard.aiSuccessPercent() != null}"
+                      th:text="${dashboard.aiSuccessPercent()} + '%'">0%</span>
+                <span th:unless="${dashboard.aiSuccessPercent() != null}" class="muted">—</span>
+            </div>
+            <div class="kpi-sub muted">Successful / total</div>
+        </div>
+    </section>
+
+    <!-- Bar charts grid -->
+    <section class="chart-grid">
+        <div class="chart-card">
+            <h2>By priority</h2>
+            <div class="bar-list">
+                <div th:each="entry : ${dashboard.byPriority}" class="bar-row">
+                    <div class="bar-label" th:text="${entry.key}">P1</div>
+                    <div class="bar-track">
+                        <div class="bar-fill"
+                             th:classappend="|priority-${#strings.toLowerCase(entry.key)}|"
+                             th:style="'width: ' + (${dashboard.maxPriorityCount() == 0} ? 0 : ${entry.value * 100 / dashboard.maxPriorityCount()}) + '%'"></div>
+                    </div>
+                    <div class="bar-count" th:text="${entry.value}">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>By status</h2>
+            <div class="bar-list">
+                <div th:each="entry : ${dashboard.byStatus}" class="bar-row">
+                    <div class="bar-label" th:text="${entry.key}">OPEN</div>
+                    <div class="bar-track">
+                        <div class="bar-fill"
+                             th:classappend="|status-${#strings.toLowerCase(entry.key)}|"
+                             th:style="'width: ' + (${dashboard.maxStatusCount() == 0} ? 0 : ${entry.value * 100 / dashboard.maxStatusCount()}) + '%'"></div>
+                    </div>
+                    <div class="bar-count" th:text="${entry.value}">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card chart-wide">
+            <h2>By category</h2>
+            <div class="bar-list">
+                <div th:each="entry : ${dashboard.byCategory}" class="bar-row">
+                    <div class="bar-label" th:text="${entry.key}">CATEGORY</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-fill-default"
+                             th:style="'width: ' + (${dashboard.maxCategoryCount() == 0} ? 0 : ${entry.value * 100 / dashboard.maxCategoryCount()}) + '%'"></div>
+                    </div>
+                    <div class="bar-count" th:text="${entry.value}">0</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Activity feed -->
+    <section class="activity-card">
+        <h2>Recent activity</h2>
+        <ul class="activity-list">
+            <li th:each="a : ${dashboard.recentActivity}" class="activity-item"
+                th:classappend="|activity-${#strings.toLowerCase(a.type)}|">
+                <span class="activity-type-tag" th:text="${a.type}">CREATED</span>
+                <a th:href="@{|/incidents/${a.incidentId}|}" th:text="${a.text}" class="activity-text">text</a>
+                <span class="activity-when muted"
+                      th:text="${#temporals.format(a.when, 'yyyy-MM-dd HH:mm')}">date</span>
+            </li>
+            <li th:if="${#lists.isEmpty(dashboard.recentActivity)}" class="muted">
+                No activity yet.
+            </li>
+        </ul>
+    </section>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

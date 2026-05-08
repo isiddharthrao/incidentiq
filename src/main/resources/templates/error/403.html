@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Forbidden — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body class="auth-body">
+<main class="auth-card">
+    <div class="error-code">403</div>
+    <h1 class="brand">Access denied</h1>
+    <p class="muted">
+        You don't have permission to view this page. If you think this is a mistake,
+        ask an administrator to check your role.
+    </p>
+    <div class="form-actions" style="margin-top: 16px;">
+        <a th:href="@{/dashboard}" class="btn btn-primary">Back to dashboard</a>
+        <a th:href="@{/logout}" class="btn btn-link"
+           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Sign out</a>
+    </div>
+    <form id="logout-form" th:action="@{/logout}" method="post" style="display:none;"></form>
+</main>
+</body>
+</html>

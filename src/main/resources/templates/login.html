@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>IncidentIQ — Sign in</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body class="auth-body">
+<main class="auth-card">
+    <h1 class="brand">IncidentIQ</h1>
+    <p class="muted">AI-Based Incident Management</p>
+
+    <div th:if="${param.error}" class="alert alert-error">
+        Invalid username or password.
+    </div>
+    <div th:if="${param.logout}" class="alert alert-success">
+        You've been signed out.
+    </div>
+
+    <form th:action="@{/login}" method="post" class="form">
+        <label>
+            Username
+            <input type="text" name="username" autofocus required>
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" required>
+        </label>
+        <button type="submit" class="btn btn-primary">Sign in</button>
+    </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Diagnostics — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container">
+    <h1>AI diagnostics</h1>
+    <p class="muted">Phase 6 connectivity check. Sends a tiny prompt to Gemini and shows the response. Every call (success or failure) is logged to <code>ai_call_log</code> below.</p>
+
+    <div class="placeholder-card">
+        <h2 style="margin-top: 0;">Status</h2>
+        <p th:if="${aiAvailable}" class="muted">
+            Gemini REST client is wired.
+            Configured model: <code th:text="${@environment.getProperty('app.gemini.model', 'unset')}">model</code>.
+        </p>
+        <p th:unless="${aiAvailable}" class="alert alert-error">
+            Gemini REST client is NOT configured. Check <code>app.gemini.api-key</code> in <code>application.properties</code>.
+        </p>
+
+        <form th:action="@{/admin/ai/ping}" method="post" style="margin-top: 12px;">
+            <button type="submit" class="btn btn-primary">Send test prompt</button>
+        </form>
+
+        <div th:if="${pingResponse}" class="ai-summary-block" style="margin-top: 16px;">
+            <strong>Response:</strong>
+            <p style="margin: 6px 0 0 0;" th:text="${pingResponse}">response</p>
+        </div>
+
+        <div th:if="${pingFailed != null and pingFailed}" class="alert alert-error" style="margin-top: 16px;">
+            Call failed. See most-recent row in the log table for the error message.
+        </div>
+    </div>
+
+    <h2 style="margin-top: 32px;">Recent AI calls (last 20)</h2>
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>When</th>
+            <th>Type</th>
+            <th>Latency</th>
+            <th>OK?</th>
+            <th>Prompt (truncated)</th>
+            <th>Response / Error (truncated)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${recentCalls}">
+            <td th:text="${#temporals.format(c.createdAt, 'yyyy-MM-dd HH:mm:ss')}">date</td>
+            <td><code th:text="${c.callType}">TYPE</code></td>
+            <td th:text="${c.latencyMs} + ' ms'">0 ms</td>
+            <td>
+                <span th:if="${c.success}" class="badge badge-ok">OK</span>
+                <span th:unless="${c.success}" class="badge" style="background:#fee2e2;color:#991b1b;border-color:transparent;">FAIL</span>
+            </td>
+            <td class="mono" style="font-size: 12px; max-width: 280px; overflow-wrap: break-word;" th:text="${c.promptSummary}">prompt</td>
+            <td class="mono" style="font-size: 12px; max-width: 280px; overflow-wrap: break-word;"
+                th:text="${c.success ? c.responseSummary : c.errorMsg}">response</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(recentCalls)}">
+            <td colspan="6" class="muted">No AI calls yet — click the button above to send a ping.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# =============================================================================
+# IncidentIQ — Local configuration template
+# Copy this file to application.properties and fill in real values.
+# application.properties is gitignored; this .example file is committed.
+# =============================================================================
+
+# --- Server ---
+server.port=8080
+
+# --- MySQL ---
+# createDatabaseIfNotExist=true means the schema is auto-created on first boot.
+spring.datasource.url=jdbc:mysql://localhost:3306/incident_iq?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=CHANGE_ME
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# --- JPA / Hibernate ---
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.open-in-view=false
+
+# --- schema.sql runs AFTER Hibernate creates tables (for the FULLTEXT index) ---
+spring.sql.init.mode=always
+spring.sql.init.continue-on-error=true
+spring.jpa.defer-datasource-initialization=true
+
+# --- Google Gemini (direct REST via Generative Language API) ---
+# Get a key from https://aistudio.google.com/app/apikey
+# A real Google API key starts with 'AIza' (capital I, not lowercase L).
+app.gemini.api-key=CHANGE_ME
+app.gemini.model=gemini-2.0-flash
+app.gemini.temperature=0.3
+
+# --- IncidentIQ branding (used in PDF + UI) ---
+app.system-name=IncidentIQ
+app.organization-name=Demo Org
+
+# --- Logging ---
+logging.level.com.incidentmgmt=DEBUG
+logging.level.org.springframework.security=INFO

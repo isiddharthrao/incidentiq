@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Server error — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body class="auth-body">
+<main class="auth-card">
+    <div class="error-code">500</div>
+    <h1 class="brand">Something went wrong</h1>
+    <p class="muted">
+        An unexpected error occurred while processing your request. The team has been notified.
+        Try again, or head back to the dashboard.
+    </p>
+    <div class="form-actions" style="margin-top: 16px;">
+        <a th:href="@{/dashboard}" class="btn btn-primary">Back to dashboard</a>
+    </div>
+</main>
+</body>
+</html>

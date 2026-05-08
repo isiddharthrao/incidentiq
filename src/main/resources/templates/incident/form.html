@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Incident — IncidentIQ</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="container container-narrow">
+    <h1>Report a new incident</h1>
+    <p class="muted">Fill in title and description, then optionally let AI suggest a category and priority.</p>
+
+    <form th:action="@{/incidents}" th:object="${incidentForm}" method="post" class="form" id="incident-form">
+
+        <label>
+            Title
+            <input type="text" th:field="*{title}" maxlength="200" required>
+            <span class="field-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></span>
+        </label>
+
+        <label>
+            Description
+            <textarea th:field="*{description}" rows="6" maxlength="5000" required></textarea>
+            <span class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></span>
+        </label>
+
+        <div class="ai-suggest-row">
+            <button type="button" id="ai-suggest-btn" class="btn btn-link">Suggest category and priority with AI</button>
+            <span id="ai-status" class="ai-status"></span>
+        </div>
+
+        <label>
+            Category
+            <select th:field="*{category}" required>
+                <option value="">— Select category —</option>
+                <option th:each="c : ${categories}" th:value="${c}" th:text="${c}"></option>
+            </select>
+            <span class="field-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></span>
+        </label>
+
+        <label>
+            Priority
+            <select th:field="*{priority}" required>
+                <option value="">— Select priority —</option>
+                <option th:each="p : ${priorities}" th:value="${p}" th:text="${p}"></option>
+            </select>
+            <span class="field-error" th:if="${#fields.hasErrors('priority')}" th:errors="*{priority}"></span>
+        </label>
+
+        <input type="hidden" th:field="*{categoryAiSuggestion}">
+        <input type="hidden" th:field="*{priorityAiSuggestion}">
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <a th:href="@{/incidents}" class="btn btn-link">Cancel</a>
+        </div>
+    </form>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script>
+(() => {
+    const button = document.getElementById('ai-suggest-btn');
+    if (!button) return;
+
+    const titleEl = document.getElementById('title');
+    const descEl = document.getElementById('description');
+    const catEl = document.getElementById('category');
+    const priEl = document.getElementById('priority');
+    const catAi = document.getElementById('categoryAiSuggestion');
+    const priAi = document.getElementById('priorityAiSuggestion');
+    const status = document.getElementById('ai-status');
+
+    button.addEventListener('click', async () => {
+        const title = titleEl.value.trim();
+        const description = descEl.value.trim();
+        if (!title || !description) {
+            status.textContent = 'Enter title and description first.';
+            status.className = 'ai-status ai-status-error';
+            return;
+        }
+
+        button.disabled = true;
+        status.textContent = 'AI is thinking…';
+        status.className = 'ai-status';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            const res = await fetch('/incidents/ai/suggest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    [csrfHeader]: csrfToken
+                },
+                body: JSON.stringify({title, description})
+            });
+
+            if (!res.ok) {
+                status.textContent = 'AI request failed (HTTP ' + res.status + ').';
+                status.className = 'ai-status ai-status-error';
+                return;
+            }
+
+            const data = await res.json();
+            const applied = [];
+            if (data.category) {
+                catEl.value = data.category;
+                catAi.value = data.category;
+                applied.push('category');
+            }
+            if (data.priority) {
+                priEl.value = data.priority;
+                priAi.value = data.priority;
+                applied.push('priority');
+            }
+
+            if (applied.length === 0) {
+                status.textContent = 'AI returned no usable suggestion.';
+                status.className = 'ai-status ai-status-error';
+            } else {
+                status.textContent = 'AI suggested ' + applied.join(' and ') + '. Override before submitting if needed.';
+                status.className = 'ai-status ai-status-ok';
+            }
+        } catch (e) {
+            status.textContent = 'AI request failed: ' + e.message;
+            status.className = 'ai-status ai-status-error';
+        } finally {
+            button.disabled = false;
+        }
+    });
+})();
+</script>
+</body>
+</html>
