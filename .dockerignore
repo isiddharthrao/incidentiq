@@ -1,0 +1,19 @@
+# Keep the Docker build context small + secret-free.
+
+target/
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store
+
+# application.properties is now safe to bundle (it only contains env-var
+# placeholders + safe defaults). Real secrets live in .env, which IS excluded.
+.env
+.env.*
+
+# Docs aren't needed in the image
+README.md
+VIVA.md

@@ -1,6 +1,53 @@
 # IncidentIQ — AI-Based Incident Management System
 
-A college-project IT/DevOps incident management system inspired by PagerDuty/Jira-Service-Desk. Engineers report and resolve incidents like "API gateway returning 502" or "Deployment to staging failed". Auto-categorization, priority suggestion, similar-incident retrieval, resolution suggestions, and thread summarization are powered by Google Gemini via Spring AI.
+A college-project IT/DevOps incident management system inspired by PagerDuty/Jira-Service-Desk. Engineers report and resolve incidents like "API gateway returning 502" or "Deployment to staging failed". Auto-categorization, priority suggestion, similar-incident retrieval, resolution suggestions, and thread summarization are powered by Google Gemini.
+
+---
+
+## Quick start (Docker, recommended)
+
+One-click on macOS / Linux / Windows with [Docker Desktop](https://docs.docker.com/desktop/) running:
+
+```bash
+git clone https://github.com/isiddharthrao/incidentiq.git
+cd incidentiq
+./deploy.sh
+```
+
+The script will:
+1. Verify Docker is running
+2. Create `.env` from `.env.example` and pause for you to add your Gemini key
+3. Build the app image (~2–3 min on first run for Maven dependencies)
+4. Start MySQL + the app together
+5. Wait until http://localhost:8080 responds, then print credentials
+
+When ready, open **http://localhost:8080** and sign in:
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | ADMIN |
+| `alice` | `alice123` | ENGINEER |
+| `bob` | `bob123` | ENGINEER |
+| `charlie` | `charlie123` | REPORTER |
+| `diana` | `diana123` | REPORTER |
+
+The demo accounts and 8 sample incidents are seeded automatically on first boot.
+
+### Managing the stack
+
+```bash
+docker compose logs -f app    # tail the app logs
+docker compose restart app    # restart only the app
+docker compose down           # stop everything (DATA IS PRESERVED in the named volume)
+docker compose down -v        # stop + DELETE all data (start fresh)
+docker compose up -d          # start again
+```
+
+The MySQL data is in a Docker volume named `incidentiq-mysql-data` — it survives `docker compose down` and reboots. Only `down -v` wipes it.
+
+### No Gemini key?
+
+The app still boots and works fine — incident CRUD, dashboard, PDF reports, search, all the non-AI features. AI calls return graceful errors (and are logged in `ai_call_log`).
 
 ---
 
@@ -44,35 +91,23 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 ---
 
-## Setup
+## Local-dev (without Docker)
+
+If you'd rather run directly on your machine:
 
 ```bash
-git clone <repo-url> incident-iq
-cd incident-iq
-cp src/main/resources/application.properties.example src/main/resources/application.properties
-```
-
-Edit `src/main/resources/application.properties` and fill in:
-- `spring.datasource.password` — your MySQL root password (empty if Homebrew-default)
-- `app.gemini.api-key` — your AI Studio key (must start with `AIza...`)
-
-Schema is auto-created (the JDBC URL has `createDatabaseIfNotExist=true` and `ddl-auto=update`). The default admin account is seeded on first boot:
-
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `admin123` | ADMIN |
-
-**Change the admin password before any real demo.**
-
----
-
-## Run
-
-```bash
+git clone https://github.com/isiddharthrao/incidentiq.git
+cd incidentiq
+# Make sure MySQL is running locally on :3306 with an empty root password
+#   (or set SPRING_DATASOURCE_PASSWORD env var)
+# Optionally export your Gemini key
+export APP_GEMINI_API_KEY=AIza...
 mvn spring-boot:run
 ```
 
-Open http://localhost:8080/ — redirects to login. Sign in with `admin` / `admin123`.
+`application.properties` already uses `${ENV_VAR:default}` placeholders, so it works out of the box for local dev with sensible defaults (localhost MySQL, empty Gemini key, `gemini-2.5-flash`).
+
+Schema is auto-created (`createDatabaseIfNotExist=true` + `ddl-auto=update`). On first boot, `AdminSeeder` and `DemoSeeder` populate users and sample incidents.
 
 ---
 

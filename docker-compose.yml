@@ -1,0 +1,56 @@
+# =============================================================================
+# IncidentIQ — one-click deployment
+# Usage:
+#   1. cp .env.example .env   (then fill in APP_GEMINI_API_KEY)
+#   2. docker compose up -d --build
+#   3. open http://localhost:8080  (admin / admin123)
+#
+# Data persistence: the `mysql-data` named volume keeps DB state across
+# `docker compose down`. Use `docker compose down -v` to wipe it.
+# =============================================================================
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: incidentiq-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpw}
+      MYSQL_DATABASE: incident_iq
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      # 3307 on host -> 3306 in container, avoids collision with a local MySQL
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpw}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  app:
+    build: .
+    container_name: incidentiq-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # DB connection — uses the docker network hostname `mysql`
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/incident_iq?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpw}
+      # Gemini — leave APP_GEMINI_API_KEY empty to run without AI (graceful degrade)
+      APP_GEMINI_API_KEY: ${APP_GEMINI_API_KEY:-}
+      APP_GEMINI_MODEL: ${APP_GEMINI_MODEL:-gemini-2.5-flash}
+      APP_GEMINI_TEMPERATURE: ${APP_GEMINI_TEMPERATURE:-0.3}
+      # Branding (shown on PDF + UI)
+      APP_SYSTEM_NAME: ${APP_SYSTEM_NAME:-IncidentIQ}
+      APP_ORGANIZATION_NAME: ${APP_ORGANIZATION_NAME:-Demo Org}
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:
+    name: incidentiq-mysql-data

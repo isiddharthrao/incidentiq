@@ -19,7 +19,11 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Secrets — local config never gets committed
-src/main/resources/application.properties
+# Local Spring profiles (e.g., application-local.properties for personal overrides)
 src/main/resources/application-*.properties
-!src/main/resources/application.properties.example
+
+# Runtime secrets for Docker (Gemini key, DB password). The .env.example template
+# IS committed — fill it in and copy to .env, which is gitignored.
+.env
+.env.*
+!.env.example
